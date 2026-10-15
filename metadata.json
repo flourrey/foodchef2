@@ -1,0 +1,6 @@
+{
+  "name": "SnapChef - AI Recipe & Cooking Assistant",
+  "description": "Snap photos of your ingredients with mobile camera zoom to identify them with Gemini AI, discover custom recipes, and cook hands-free with voice instruction.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
