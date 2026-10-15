@@ -4,6 +4,7 @@ export interface SampleItem {
   subtitle: string;
   imageUrl: string;
   mockIngredients: string[];
+  isCookedDish?: boolean;
 }
 
 export const SAMPLE_INGREDIENT_SCENARIOS: SampleItem[] = [
@@ -29,10 +30,11 @@ export const SAMPLE_INGREDIENT_SCENARIOS: SampleItem[] = [
     mockIngredients: ['Eggs', 'Avocado', 'Sourdough Bread', 'Cherry Tomatoes', 'Cheddar Cheese'],
   },
   {
-    id: 'sample-pantry',
-    title: 'Quick Pantry Pasta',
-    subtitle: 'Pasta, canned tomatoes, garlic, chili, parmesan',
-    imageUrl: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=700&q=80',
-    mockIngredients: ['Spaghetti', 'Canned Tomatoes', 'Garlic', 'Chili Flakes', 'Parmesan Cheese'],
+    id: 'sample-salmon-dish',
+    title: 'Restaurant Garlic Salmon (Plated Dish)',
+    subtitle: 'Crispy pan-seared salmon with lemon herb butter & asparagus',
+    imageUrl: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=700&q=80',
+    mockIngredients: ['Salmon Fillet', 'Butter', 'Garlic', 'Lemon', 'Fresh Dill', 'Asparagus'],
+    isCookedDish: true,
   },
 ];

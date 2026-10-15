@@ -3,7 +3,6 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import geminiHandler from './api/gemini.ts';
-import mistralHandler from './api/mistral.ts';
 import healthHandler from './api/health.ts';
 
 dotenv.config();
@@ -15,11 +14,11 @@ const app = express();
 app.use(express.json({ limit: '35mb' }));
 app.use(express.urlencoded({ extended: true, limit: '35mb' }));
 
-// Direct routes to /api/gemini.ts, /api/mistral.ts, and /api/health.ts
+// Direct routes to /api/claude.ts, /api/gemini.ts and /api/health.ts
+app.all('/api/claude.ts*', (req, res) => geminiHandler(req, res));
+app.all('/api/claude*', (req, res) => geminiHandler(req, res));
 app.all('/api/gemini.ts*', (req, res) => geminiHandler(req, res));
 app.all('/api/gemini*', (req, res) => geminiHandler(req, res));
-app.all('/api/mistral.ts*', (req, res) => mistralHandler(req, res));
-app.all('/api/mistral*', (req, res) => mistralHandler(req, res));
 app.all('/api/health.ts*', (req, res) => healthHandler(req, res));
 app.all('/api/health*', (req, res) => healthHandler(req, res));
 
@@ -36,6 +35,16 @@ app.all('/api/recipes/find-recipes', (req, res) => {
 
 app.all('/api/recipes/generate-custom', (req, res) => {
   req.body = { ...req.body, action: 'generate-recipe' };
+  return geminiHandler(req, res);
+});
+
+app.all('/api/recipes/reverse-engineer', (req, res) => {
+  req.body = { ...req.body, action: 'reverse-engineer' };
+  return geminiHandler(req, res);
+});
+
+app.all('/api/adjust-dish-photo', (req, res) => {
+  req.body = { ...req.body, action: 'adjust-dish-photo' };
   return geminiHandler(req, res);
 });
 

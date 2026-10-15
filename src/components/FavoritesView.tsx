@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Search, Play, Clock, ArrowRight, Trash2 } from 'lucide-react';
+import { Heart, Search, Play, Clock, ChefHat, Sparkles, Trash2, ArrowRight } from 'lucide-react';
 import { Recipe } from '../types';
 
 interface FavoritesViewProps {
@@ -28,28 +28,28 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
 
   return (
     <div className="w-full max-w-lg mx-auto px-4 pb-28 pt-2">
-      {/* Apple Large Title Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-black/[0.06]">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-stone-200">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] flex items-center gap-2">
-            <Heart className="w-5 h-5 text-[#ff2d55] fill-current" />
-            Saved Recipes
+          <h1 className="text-xl font-extrabold text-stone-900 tracking-tight flex items-center gap-2">
+            <Heart className="w-5 h-5 text-rose-500 fill-current" />
+            Favorite Recipes
           </h1>
-          <p className="text-xs text-[#86868b] mt-0.5">
-            <span className="font-semibold text-[#1d1d1f] tabular-nums">{favorites.length}</span> saved {favorites.length === 1 ? 'recipe' : 'recipes'}
+          <p className="text-xs text-stone-500 mt-0.5">
+            {favorites.length} saved {favorites.length === 1 ? 'recipe' : 'recipes'} for quick access
           </p>
         </div>
       </div>
 
       {favorites.length > 0 && (
-        <div className="mt-3.5 relative">
-          <Search className="w-4 h-4 text-[#86868b] absolute left-3.5 top-2.5" />
+        <div className="mt-3 relative">
+          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search saved recipes..."
-            className="w-full bg-black/[0.05] border-0 rounded-xl pl-9 pr-4 py-2 text-xs text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40"
+            className="w-full bg-white border border-stone-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
           />
         </div>
       )}
@@ -57,25 +57,25 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
       {/* List */}
       <div className="mt-4 space-y-3">
         {filtered.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-black/[0.06] p-6 shadow-xs">
-            <div className="w-12 h-12 rounded-full bg-[#ff2d55]/10 text-[#ff2d55] flex items-center justify-center mx-auto mb-3">
-              <Heart className="w-5 h-5" />
+          <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-stone-300 p-6">
+            <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-3">
+              <Heart className="w-6 h-6" />
             </div>
-            <h3 className="font-semibold text-[#1d1d1f] text-sm">
-              {favorites.length === 0 ? 'No Saved Recipes' : 'No matching recipes'}
+            <h3 className="font-bold text-stone-800 text-sm">
+              {favorites.length === 0 ? 'No Favorites Saved Yet' : 'No matching favorites'}
             </h3>
-            <p className="text-[#86868b] text-xs mt-1 max-w-xs mx-auto">
+            <p className="text-stone-500 text-xs mt-1 max-w-xs mx-auto">
               {favorites.length === 0
-                ? 'Tap the heart icon on any recipe to save it here for quick access in your kitchen.'
-                : 'Try searching with another recipe title or cuisine.'}
+                ? 'Tap the heart icon on any recipe to save it here for fast access whenever you cook.'
+                : 'Try searching with a different recipe name or cuisine.'}
             </p>
             {favorites.length === 0 && (
               <button
                 onClick={onGoToScanner}
                 type="button"
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0071e3] text-white font-semibold text-xs shadow-xs hover:bg-[#0077ed] active:scale-95 transition-all cursor-pointer"
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-600/20"
               >
-                <span>Find Recipes</span>
+                Scan Ingredients to Find Recipes
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
@@ -84,7 +84,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
           filtered.map((recipe) => (
             <div
               key={recipe.id}
-              className="bg-white rounded-2xl border border-black/[0.06] overflow-hidden shadow-xs hover:shadow-sm transition-all flex items-center p-3 gap-3"
+              className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex items-center p-3 gap-3"
             >
               <img
                 src={recipe.imageUrl}
@@ -94,26 +94,28 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
               />
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 text-xs text-[#86868b]">
-                  <span className="font-medium text-[#1d1d1f]">{recipe.area}</span>
-                  <span aria-hidden="true">·</span>
+                <div className="flex items-center gap-1.5 text-[10px] text-stone-500 font-medium">
+                  <span className="font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                    {recipe.area}
+                  </span>
+                  <span>•</span>
                   <span>{recipe.category}</span>
-                  <span aria-hidden="true">·</span>
-                  <span className="tabular-nums">{recipe.estimatedTimeMinutes}m</span>
+                  <span>•</span>
+                  <span>{recipe.estimatedTimeMinutes}m</span>
                 </div>
 
                 <h3
                   onClick={() => onSelectRecipe(recipe)}
-                  className="font-semibold text-[#1d1d1f] text-sm leading-snug truncate mt-0.5 cursor-pointer hover:text-[#0071e3] transition-colors"
+                  className="font-bold text-stone-900 text-sm leading-snug truncate mt-1 cursor-pointer hover:text-amber-600"
                 >
                   {recipe.title}
                 </h3>
 
-                <div className="flex items-center gap-2 mt-2.5">
+                <div className="flex items-center gap-2 mt-2">
                   <button
                     onClick={() => onStartCooking(recipe)}
                     type="button"
-                    className="px-3 py-1.5 rounded-lg bg-[#0071e3] hover:bg-[#0077ed] active:scale-95 text-white text-xs font-semibold flex items-center gap-1 shadow-xs cursor-pointer transition-all"
+                    className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold flex items-center gap-1 shadow-xs"
                   >
                     <Play className="w-3 h-3 fill-current" />
                     Cook
@@ -122,7 +124,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
                   <button
                     onClick={() => onSelectRecipe(recipe)}
                     type="button"
-                    className="px-3 py-1.5 rounded-lg bg-black/[0.04] hover:bg-black/[0.08] text-[#1d1d1f] text-xs font-medium cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl border border-stone-200 text-stone-700 hover:bg-stone-50 text-xs font-semibold"
                   >
                     Details
                   </button>
@@ -130,10 +132,10 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
                   <button
                     onClick={() => onToggleFavorite(recipe)}
                     type="button"
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-[#86868b] hover:text-[#ff2d55] hover:bg-black/[0.04] transition-colors ml-auto cursor-pointer active:scale-90"
+                    className="p-1.5 text-stone-400 hover:text-rose-500 rounded-lg ml-auto"
                     title="Remove from favorites"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>

@@ -11,19 +11,13 @@ import { RecipeDetailModal } from './components/RecipeDetailModal';
 import { VoiceCookingAssistant } from './components/VoiceCookingAssistant';
 import { FavoritesView } from './components/FavoritesView';
 import { TopBar, BottomTabBar } from './components/Navigation';
-import { Ingredient, Recipe, AppTab, AiProvider } from './types';
+import { ChefProModal } from './components/ChefProModal';
+import { ReverseEngineerModal } from './components/ReverseEngineerModal';
+import { AdjustDishPhotoModal } from './components/AdjustDishPhotoModal';
+import { Ingredient, Recipe, AppTab } from './types';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<AppTab>('scanner');
-  const [aiProvider, setAiProvider] = useState<AiProvider>(() => {
-    try {
-      const saved = localStorage.getItem('snapchef_ai_provider');
-      return saved === 'mistral' ? 'mistral' : 'gemini';
-    } catch {
-      return 'gemini';
-    }
-  });
-
   const [ingredients, setIngredients] = useState<Ingredient[]>(() => {
     try {
       const saved = localStorage.getItem('snapchef_ingredients');
@@ -46,21 +40,31 @@ export default function App() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [activeCookingRecipe, setActiveCookingRecipe] = useState<Recipe | null>(null);
 
+  // Chef Pro / Premium tier state
+  const [isPro, setIsPro] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('snapchef_is_pro') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [proModalFeature, setProModalFeature] = useState<string>('reverse-engineer');
+
+  // Reverse Engineer Modal state
+  const [reverseEngineeredRecipe, setReverseEngineeredRecipe] = useState<Recipe | null>(null);
+  const [isReverseModalOpen, setIsReverseModalOpen] = useState(false);
+
+  // Adjust Dish Photo Modal state
+  const [adjustPhotoRecipe, setAdjustPhotoRecipe] = useState<Recipe | null>(null);
+  const [isAdjustPhotoModalOpen, setIsAdjustPhotoModalOpen] = useState(false);
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSearchingRecipes, setIsSearchingRecipes] = useState(false);
   const [isLoadingCustomRecipe, setIsLoadingCustomRecipe] = useState(false);
 
   const [chefTip, setChefTip] = useState<string>('');
   const [suggestedCuisines, setSuggestedCuisines] = useState<string[]>([]);
-
-  // Persist AI provider
-  useEffect(() => {
-    try {
-      localStorage.setItem('snapchef_ai_provider', aiProvider);
-    } catch {
-      // ignore
-    }
-  }, [aiProvider]);
 
   // Persist ingredients to localStorage
   useEffect(() => {
@@ -79,6 +83,63 @@ export default function App() {
       // ignore
     }
   }, [favorites]);
+
+  const handleTogglePro = () => {
+    setIsPro((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('snapchef_is_pro', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  const handleOpenProModal = (feature: string = 'reverse-engineer') => {
+    setProModalFeature(feature);
+    setIsProModalOpen(true);
+  };
+
+  // Reverse engineer recipe completed callback
+  const handleReverseEngineerCompleted = (recipe: Recipe) => {
+    setReverseEngineeredRecipe(recipe);
+    setIsReverseModalOpen(true);
+    setRecipes((prev) => {
+      if (prev.some((r) => r.id === recipe.id)) return prev;
+      return [recipe, ...prev];
+    });
+  };
+
+  // Open adjust photo modal
+  const handleOpenAdjustPhoto = (recipe: Recipe) => {
+    setAdjustPhotoRecipe(recipe);
+    setIsAdjustPhotoModalOpen(true);
+  };
+
+  // Apply adjusted photo
+  const handlePhotoAdjusted = (updatedRecipe: Recipe) => {
+    setRecipes((prev) => prev.map((r) => (r.id === updatedRecipe.id ? updatedRecipe : r)));
+    setFavorites((prev) => prev.map((f) => (f.id === updatedRecipe.id ? updatedRecipe : f)));
+    if (selectedRecipe && selectedRecipe.id === updatedRecipe.id) {
+      setSelectedRecipe(updatedRecipe);
+    }
+    if (reverseEngineeredRecipe && reverseEngineeredRecipe.id === updatedRecipe.id) {
+      setReverseEngineeredRecipe(updatedRecipe);
+    }
+    if (activeCookingRecipe && activeCookingRecipe.id === updatedRecipe.id) {
+      setActiveCookingRecipe(updatedRecipe);
+    }
+  };
+
+  // Add missing ingredients from reverse-engineered dish to pantry
+  const handleAddMissingToPantry = (missingNames: string[]) => {
+    if (!missingNames || missingNames.length === 0) return;
+    missingNames.forEach((name) => {
+      handleAddIngredient(name, 'Grocery');
+    });
+    alert(`Added ${missingNames.length} missing ingredients to your pantry list!`);
+  };
 
   // Handle ingredients detected by Gemini from photo
   const handleIngredientsDetected = (data: {
@@ -138,16 +199,15 @@ export default function App() {
     }
   };
 
-  // Generate recipes via selected AI Provider (Gemini or Mistral)
+  // Generate recipes via Claude AI
   const handleFindGeminiRecipes = async () => {
     const activeIngredients = ingredients.filter((i) => i.checked).map((i) => i.name);
     if (activeIngredients.length === 0) return;
 
     setIsSearchingRecipes(true);
     try {
-      const endpoint = aiProvider === 'mistral' ? '/api/mistral.ts' : '/api/gemini.ts';
       const payload = { action: 'find-recipes', ingredients: activeIngredients };
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/claude.ts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -155,25 +215,7 @@ export default function App() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errMessage = errorData.error || `Failed to generate recipes with ${aiProvider === 'mistral' ? 'Mistral AI' : 'Gemini AI'}`;
-
-        if (aiProvider === 'mistral' && errMessage.includes('MISTRAL_API_KEY')) {
-          if (confirm('Mistral AI requires MISTRAL_API_KEY in your .env file. Would you like to generate recipes using Gemini AI instead?')) {
-            setAiProvider('gemini');
-            const fallbackRes = await fetch('/api/gemini.ts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-            if (fallbackRes.ok) {
-              const fallbackData = await fallbackRes.json();
-              setRecipes(fallbackData.recipes || []);
-              setCurrentTab('recipes');
-              return;
-            }
-          }
-        }
-        throw new Error(errMessage);
+        throw new Error(errorData.error || 'Failed to generate recipes with Claude AI');
       }
 
       const data = await response.json();
@@ -187,7 +229,7 @@ export default function App() {
     }
   };
 
-  // Generate Bespoke Custom Recipe with selected AI Provider
+  // Generate Bespoke Custom Recipe with Claude AI Chef
   const handleGenerateCustomRecipe = async () => {
     const activeIngredients = ingredients.filter((i) => i.checked).map((i) => i.name);
     if (activeIngredients.length === 0) {
@@ -197,7 +239,6 @@ export default function App() {
 
     setIsLoadingCustomRecipe(true);
     try {
-      const endpoint = aiProvider === 'mistral' ? '/api/mistral.ts' : '/api/gemini.ts';
       const payload = {
         action: 'generate-recipe',
         ingredients: activeIngredients,
@@ -205,7 +246,7 @@ export default function App() {
         dietaryPreference: 'None',
       };
 
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/claude.ts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -213,28 +254,7 @@ export default function App() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errMessage = errorData.error || `Failed to generate custom recipe with ${aiProvider === 'mistral' ? 'Mistral AI' : 'Gemini AI'}`;
-
-        if (aiProvider === 'mistral' && errMessage.includes('MISTRAL_API_KEY')) {
-          if (confirm('Mistral AI requires MISTRAL_API_KEY in your .env file. Would you like to create your recipe with Gemini AI instead?')) {
-            setAiProvider('gemini');
-            const fallbackRes = await fetch('/api/gemini.ts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-            if (fallbackRes.ok) {
-              const fallbackData = await fallbackRes.json();
-              if (fallbackData.recipe) {
-                setRecipes((prev) => [fallbackData.recipe, ...prev.filter((r) => r.id !== fallbackData.recipe.id)]);
-                setSelectedRecipe(fallbackData.recipe);
-                setCurrentTab('recipes');
-                return;
-              }
-            }
-          }
-        }
-        throw new Error(errMessage);
+        throw new Error(errorData.error || 'Failed to generate custom recipe with Claude AI');
       }
 
       const data = await response.json();
@@ -266,25 +286,26 @@ export default function App() {
   // Launch Voice Cooking Assistant
   const handleStartCooking = (recipe: Recipe) => {
     setSelectedRecipe(null);
+    setIsReverseModalOpen(false);
     setActiveCookingRecipe(recipe);
     setCurrentTab('cooking');
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] font-sans flex flex-col antialiased selection:bg-[#0071e3]/20 selection:text-[#0071e3]">
+    <div className="min-h-screen bg-stone-100 text-stone-900 font-sans flex flex-col antialiased selection:bg-amber-200 selection:text-amber-900">
       {/* Top Bar (Hidden when actively in voice cooking mode) */}
       {currentTab !== 'cooking' && (
         <TopBar
           currentTab={currentTab}
           pantryCount={ingredients.length}
           onGoToScanner={() => setCurrentTab('scanner')}
-          aiProvider={aiProvider}
-          onSelectAiProvider={setAiProvider}
+          isPro={isPro}
+          onOpenProModal={() => handleOpenProModal('reverse-engineer')}
         />
       )}
 
-      {/* Main Content Body with Responsive Width */}
-      <main className={`flex-1 w-full mx-auto ${currentTab === 'recipes' ? 'max-w-5xl' : 'max-w-xl'}`}>
+      {/* Main Content Body */}
+      <main className="flex-1 w-full max-w-lg mx-auto">
         {/* Tab 1: Scanner */}
         {currentTab === 'scanner' && (
           <CameraScanner
@@ -293,9 +314,10 @@ export default function App() {
             setIsAnalyzing={setIsAnalyzing}
             onViewPantry={() => setCurrentTab('pantry')}
             pantryCount={ingredients.length}
-            autoStart={false}
-            aiProvider={aiProvider}
-            onSelectAiProvider={setAiProvider}
+            userIngredients={ingredients.filter((i) => i.checked).map((i) => i.name)}
+            isPro={isPro}
+            onOpenProModal={handleOpenProModal}
+            onReverseEngineerCompleted={handleReverseEngineerCompleted}
           />
         )}
 
@@ -313,7 +335,6 @@ export default function App() {
             chefTip={chefTip}
             suggestedCuisines={suggestedCuisines}
             isSearchingRecipes={isSearchingRecipes}
-            aiProvider={aiProvider}
           />
         )}
 
@@ -329,6 +350,7 @@ export default function App() {
             onGenerateCustomRecipe={handleGenerateCustomRecipe}
             onBackToPantry={() => setCurrentTab('pantry')}
             isLoadingCustomRecipe={isLoadingCustomRecipe}
+            onAdjustPhoto={handleOpenAdjustPhoto}
           />
         )}
 
@@ -366,6 +388,40 @@ export default function App() {
         isFavorite={selectedRecipe ? favorites.some((f) => f.id === selectedRecipe.id) : false}
         onToggleFavorite={handleToggleFavorite}
         onStartCooking={handleStartCooking}
+        onAdjustPhoto={handleOpenAdjustPhoto}
+      />
+
+      {/* Reverse Engineer Modal */}
+      <ReverseEngineerModal
+        recipe={reverseEngineeredRecipe}
+        isOpen={isReverseModalOpen}
+        onClose={() => setIsReverseModalOpen(false)}
+        isFavorite={reverseEngineeredRecipe ? favorites.some((f) => f.id === reverseEngineeredRecipe.id) : false}
+        onToggleFavorite={handleToggleFavorite}
+        onStartCooking={handleStartCooking}
+        onAddMissingToPantry={handleAddMissingToPantry}
+        onAdjustPhoto={handleOpenAdjustPhoto}
+      />
+
+      {/* Adjust Dish Photo Modal */}
+      <AdjustDishPhotoModal
+        recipe={adjustPhotoRecipe}
+        isOpen={isAdjustPhotoModalOpen}
+        onClose={() => {
+          setIsAdjustPhotoModalOpen(false);
+          setAdjustPhotoRecipe(null);
+        }}
+        onPhotoAdjusted={handlePhotoAdjusted}
+        userIngredients={ingredients.filter((i) => i.checked).map((i) => i.name)}
+      />
+
+      {/* Chef Pro / Premium Modal */}
+      <ChefProModal
+        isOpen={isProModalOpen}
+        onClose={() => setIsProModalOpen(false)}
+        isPro={isPro}
+        onTogglePro={handleTogglePro}
+        targetFeature={proModalFeature}
       />
 
       {/* Mobile Floating Bottom Tab Bar */}

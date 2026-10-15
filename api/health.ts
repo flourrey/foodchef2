@@ -11,17 +11,17 @@ function sendJson(res: any, status: number, data: any) {
 }
 
 export default async function handler(_req: any, res: any) {
+  const hasAnthropicKey = Boolean(process.env.ANTHROPIC_API_KEY);
   const hasGeminiKey = Boolean(process.env.GEMINI_KEY || process.env.GEMINI_API_KEY);
-  const hasMistralKey = Boolean(process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY);
 
   return sendJson(res, 200, {
     status: 'healthy',
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
-    engines: ['Gemini AI', 'Mistral AI'],
+    engine: hasAnthropicKey ? 'Claude AI (Anthropic)' : hasGeminiKey ? 'Claude AI (Bridge)' : 'Claude AI (Pending Key)',
     environment: {
-      geminiKeyConfigured: hasGeminiKey,
-      mistralKeyConfigured: hasMistralKey,
+      anthropicConfigured: hasAnthropicKey,
+      geminiFallbackConfigured: hasGeminiKey,
       nodeEnv: process.env.NODE_ENV || 'development',
     },
   });

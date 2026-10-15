@@ -1,6 +1,6 @@
 import React from 'react';
-import { Camera, Utensils, Heart, ChefHat, Package, Sparkles } from 'lucide-react';
-import { AppTab, AiProvider } from '../types';
+import { Camera, UtensilsCrossed, Heart, ChefHat, Layers, Crown, Sparkles } from 'lucide-react';
+import { AppTab } from '../types';
 
 interface NavigationProps {
   currentTab: AppTab;
@@ -16,67 +16,52 @@ export const TopBar: React.FC<{
   currentTab: AppTab;
   pantryCount: number;
   onGoToScanner: () => void;
-  aiProvider: AiProvider;
-  onSelectAiProvider: (provider: AiProvider) => void;
-}> = ({ currentTab, pantryCount, onGoToScanner, aiProvider, onSelectAiProvider }) => {
+  isPro?: boolean;
+  onOpenProModal?: () => void;
+}> = ({ currentTab, pantryCount, onGoToScanner, isPro = false, onOpenProModal }) => {
   return (
-    <header className="sticky top-0 z-40 apple-glass border-b border-black/[0.06] transition-colors">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-        {/* Apple Wordmark Lockup */}
-        <button
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 px-4 py-3">
+      <div className="max-w-lg mx-auto flex items-center justify-between">
+        <div
           onClick={onGoToScanner}
-          type="button"
-          className="flex items-center gap-2.5 text-left group transition-opacity active:opacity-70 cursor-pointer"
+          className="flex items-center gap-2 cursor-pointer select-none group"
         >
-          <div className="w-8 h-8 rounded-[10px] bg-[#1d1d1f] flex items-center justify-center text-white shadow-xs group-hover:scale-[1.02] transition-transform">
-            <ChefHat className="w-4 h-4 text-amber-400 stroke-[2.2]" />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform">
+            <ChefHat className="w-4 h-4 stroke-[2.5]" />
           </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-[15px] text-[#1d1d1f] tracking-tight leading-none">
+          <div>
+            <span className="font-extrabold text-stone-900 text-base tracking-tight block leading-tight font-serif">
               SnapChef
             </span>
-            <span className="text-[10px] text-[#86868b] font-medium tracking-normal mt-0.5">
-              AI Vision &amp; Cooking Assistant
+            <span className="text-[10px] text-amber-700 font-semibold tracking-wider uppercase block">
+              AI Vision &amp; Voice Cook
             </span>
           </div>
-        </button>
+        </div>
 
-        {/* Right Status & AI Provider Selector */}
         <div className="flex items-center gap-2">
-          {/* iOS Segmented Control for AI Engine: Gemini vs Mistral */}
-          <div className="flex items-center p-0.5 rounded-full bg-black/[0.05] border border-black/[0.04]">
+          {/* Chef Pro / Premium Badge or Button */}
+          {onOpenProModal && (
             <button
-              onClick={() => onSelectAiProvider('gemini')}
+              onClick={onOpenProModal}
               type="button"
-              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
-                aiProvider === 'gemini'
-                  ? 'bg-white text-[#1d1d1f] shadow-xs'
-                  : 'text-[#86868b] hover:text-[#1d1d1f]'
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                isPro
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-black shadow-amber-500/25 ring-2 ring-amber-400/40'
+                  : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300'
               }`}
-              title="Google Gemini AI (Multimodal Vision & Recipes)"
+              title="Chef Pro Premium Features"
             >
-              Gemini
+              <Crown className={`w-3.5 h-3.5 ${isPro ? 'text-stone-950' : 'text-amber-600'}`} />
+              <span>{isPro ? 'Chef Pro' : 'Try Pro'}</span>
             </button>
-            <button
-              onClick={() => onSelectAiProvider('mistral')}
-              type="button"
-              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
-                aiProvider === 'mistral'
-                  ? 'bg-white text-[#1d1d1f] shadow-xs'
-                  : 'text-[#86868b] hover:text-[#1d1d1f]'
-              }`}
-              title="Mistral AI (Pixtral Vision & Mistral Recipes)"
-            >
-              Mistral
-            </button>
-          </div>
+          )}
 
           {pantryCount > 0 && currentTab !== 'pantry' && (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/[0.04] text-[#1d1d1f] text-xs font-medium border border-black/[0.04]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#34c759]" />
-              <span className="tabular-nums font-semibold">{pantryCount}</span>
-              <span className="text-[#86868b]">pantry</span>
-            </div>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {pantryCount}
+            </span>
           )}
         </div>
       </div>
@@ -93,83 +78,107 @@ export const BottomTabBar: React.FC<NavigationProps> = ({
   hasActiveCookingSession,
   onResumeCooking,
 }) => {
+  // If in active fullscreen cooking mode, the assistant has its own footer
   if (currentTab === 'cooking') return null;
 
-  const tabs: { id: AppTab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    {
-      id: 'scanner',
-      label: 'Camera',
-      icon: <Camera className="w-[21px] h-[21px] stroke-[2]" />,
-    },
-    {
-      id: 'pantry',
-      label: 'Pantry',
-      icon: <Package className="w-[21px] h-[21px] stroke-[2]" />,
-      badge: pantryCount,
-    },
-    {
-      id: 'recipes',
-      label: 'Recipes',
-      icon: <Utensils className="w-[21px] h-[21px] stroke-[2]" />,
-      badge: recipesCount,
-    },
-    {
-      id: 'favorites',
-      label: 'Saved',
-      icon: <Heart className={`w-[21px] h-[21px] stroke-[2] ${currentTab === 'favorites' && favoritesCount > 0 ? 'fill-current' : ''}`} />,
-      badge: favoritesCount,
-    },
-  ];
-
   return (
-    <nav
-      aria-label="App Navigation"
-      className="fixed bottom-0 inset-x-0 z-40 apple-glass border-t border-black/[0.07] px-3 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] transition-colors"
-    >
-      <div className="max-w-md mx-auto flex items-center justify-around relative">
-        {tabs.map((tab) => {
-          const isActive = currentTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              type="button"
-              className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all duration-150 min-h-[44px] cursor-pointer active:scale-95 ${
-                isActive ? 'text-[#0071e3]' : 'text-[#86868b] hover:text-[#1d1d1f]'
-              }`}
-            >
-              <div className="relative flex items-center justify-center">
-                {tab.icon}
-                {Boolean(tab.badge && tab.badge > 0) && (
-                  <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[#ff3b30] text-white text-[10px] font-bold flex items-center justify-center tabular-nums leading-none shadow-xs">
-                    {tab.badge}
-                  </span>
-                )}
-              </div>
-              <span className={`text-[10px] mt-1 tracking-tight leading-none ${isActive ? 'font-semibold' : 'font-normal'}`}>
-                {tab.label}
+    <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-lg border-t border-stone-200 px-3 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl">
+      <div className="max-w-lg mx-auto flex items-center justify-around relative">
+        {/* 1. Pantry */}
+        <button
+          onClick={() => onTabChange('pantry')}
+          type="button"
+          className={`flex flex-col items-center py-1 px-3 rounded-2xl transition-all relative cursor-pointer ${
+            currentTab === 'pantry'
+              ? 'text-amber-600 font-bold scale-105'
+              : 'text-stone-500 hover:text-stone-800 font-medium'
+          }`}
+        >
+          <div className="relative">
+            <Layers className="w-5 h-5 mb-0.5" />
+            {pantryCount > 0 && (
+              <span className="absolute -top-1 -right-2.5 w-4 h-4 rounded-full bg-amber-600 text-white text-[9px] font-extrabold flex items-center justify-center">
+                {pantryCount}
               </span>
-            </button>
-          );
-        })}
+            )}
+          </div>
+          <span className="text-[10px]">Pantry</span>
+        </button>
 
-        {/* Active Cooking Session Indicator */}
+        {/* 2. Recipes */}
+        <button
+          onClick={() => onTabChange('recipes')}
+          type="button"
+          className={`flex flex-col items-center py-1 px-3 rounded-2xl transition-all relative cursor-pointer ${
+            currentTab === 'recipes'
+              ? 'text-amber-600 font-bold scale-105'
+              : 'text-stone-500 hover:text-stone-800 font-medium'
+          }`}
+        >
+          <div className="relative">
+            <UtensilsCrossed className="w-5 h-5 mb-0.5" />
+            {recipesCount > 0 && (
+              <span className="absolute -top-1 -right-2.5 w-4 h-4 rounded-full bg-emerald-600 text-white text-[9px] font-extrabold flex items-center justify-center">
+                {recipesCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px]">Recipes</span>
+        </button>
+
+        {/* 3. HERO CENTER CAMERA BUTTON: Auto-opens camera */}
+        <div className="relative -top-3">
+          <button
+            onClick={() => onTabChange('scanner')}
+            type="button"
+            className={`w-14 h-14 rounded-full flex flex-col items-center justify-center text-white shadow-xl shadow-amber-500/30 transition-all active:scale-95 border-2 border-white cursor-pointer ${
+              currentTab === 'scanner'
+                ? 'bg-gradient-to-tr from-amber-500 to-orange-500 ring-4 ring-amber-400/30 scale-105'
+                : 'bg-gradient-to-tr from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500'
+            }`}
+            title="Open Camera"
+          >
+            <Camera className="w-6 h-6 stroke-[2.2]" />
+          </button>
+        </div>
+
+        {/* 4. Favorites */}
+        <button
+          onClick={() => onTabChange('favorites')}
+          type="button"
+          className={`flex flex-col items-center py-1 px-3 rounded-2xl transition-all relative cursor-pointer ${
+            currentTab === 'favorites'
+              ? 'text-rose-500 font-bold scale-105'
+              : 'text-stone-500 hover:text-stone-800 font-medium'
+          }`}
+        >
+          <div className="relative">
+            <Heart
+              className={`w-5 h-5 mb-0.5 ${
+                favoritesCount > 0 && currentTab === 'favorites' ? 'fill-current' : ''
+              }`}
+            />
+            {favoritesCount > 0 && (
+              <span className="absolute -top-1 -right-2.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center">
+                {favoritesCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px]">Favorites</span>
+        </button>
+
+        {/* 5. Active Cooking Session */}
         {hasActiveCookingSession && (
           <button
             onClick={onResumeCooking}
             type="button"
-            className="flex flex-col items-center justify-center flex-1 py-1 rounded-xl text-[#ff9500] min-h-[44px] cursor-pointer active:scale-95"
+            className="flex flex-col items-center py-1 px-3 rounded-2xl text-amber-600 font-extrabold animate-pulse cursor-pointer"
           >
-            <div className="relative flex items-center justify-center">
-              <ChefHat className="w-[21px] h-[21px] stroke-[2.2] animate-pulse" />
-              <span className="w-2 h-2 rounded-full bg-[#ff9500] absolute -top-0.5 -right-0.5" />
-            </div>
-            <span className="text-[10px] font-semibold mt-1 tracking-tight leading-none">
-              Cooking
-            </span>
+            <ChefHat className="w-5 h-5 mb-0.5 text-amber-600" />
+            <span className="text-[10px]">Cooking</span>
           </button>
         )}
       </div>
-    </nav>
+    </div>
   );
 };

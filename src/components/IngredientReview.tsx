@@ -4,12 +4,14 @@ import {
   Plus,
   Trash2,
   Camera,
+  Search,
   Sparkles,
   Layers,
+  Info,
   ChevronRight,
   RotateCcw,
 } from 'lucide-react';
-import { Ingredient, AiProvider } from '../types';
+import { Ingredient } from '../types';
 
 interface IngredientReviewProps {
   ingredients: Ingredient[];
@@ -23,8 +25,16 @@ interface IngredientReviewProps {
   chefTip?: string;
   suggestedCuisines?: string[];
   isSearchingRecipes: boolean;
-  aiProvider?: AiProvider;
 }
+
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  Produce: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  'Meat & Seafood': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  'Dairy & Eggs': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  'Pantry & Seasonings': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+  'Bakery & Grains': { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-200' },
+  Other: { bg: 'bg-stone-100', text: 'text-stone-700', border: 'border-stone-200' },
+};
 
 export const IngredientReview: React.FC<IngredientReviewProps> = ({
   ingredients,
@@ -38,12 +48,12 @@ export const IngredientReview: React.FC<IngredientReviewProps> = ({
   chefTip,
   suggestedCuisines,
   isSearchingRecipes,
-  aiProvider = 'gemini',
 }) => {
   const [newIngredientName, setNewIngredientName] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('All');
 
   const selectedCount = ingredients.filter((i) => i.checked).length;
+
   const categories = ['All', ...Array.from(new Set(ingredients.map((i) => i.category || 'Other')))];
 
   const filteredIngredients =
@@ -60,14 +70,14 @@ export const IngredientReview: React.FC<IngredientReviewProps> = ({
 
   return (
     <div className="w-full max-w-lg mx-auto px-4 pb-28 pt-2">
-      {/* Apple Large Title Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-black/[0.06]">
+      {/* Header Info */}
+      <div className="flex items-center justify-between pb-3 border-b border-stone-200">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f]">
-            Pantry List
+          <h1 className="text-xl font-extrabold text-stone-900 tracking-tight">
+            Identified Ingredients
           </h1>
-          <p className="text-xs text-[#86868b] mt-0.5">
-            <span className="font-semibold text-[#1d1d1f] tabular-nums">{selectedCount}</span> of {ingredients.length} items selected
+          <p className="text-xs text-stone-500 mt-0.5">
+            {selectedCount} of {ingredients.length} items selected for recipes
           </p>
         </div>
 
@@ -75,34 +85,37 @@ export const IngredientReview: React.FC<IngredientReviewProps> = ({
           <button
             onClick={onClearAll}
             type="button"
-            className="text-[#86868b] hover:text-[#ff3b30] text-xs font-medium transition-colors px-2.5 py-1 rounded-lg hover:bg-black/[0.04] cursor-pointer"
+            className="text-stone-400 hover:text-red-500 text-xs font-semibold flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-stone-100"
           >
-            Clear All
+            <RotateCcw className="w-3.5 h-3.5" />
+            Clear
           </button>
         )}
       </div>
 
-      {/* Chef Note Card (Apple Intelligence aesthetic) */}
+      {/* Chef Tip & Suggested Cuisines Callout */}
       {(chefTip || (suggestedCuisines && suggestedCuisines.length > 0)) && (
-        <div className="mt-3.5 p-4 rounded-2xl bg-white border border-black/[0.06] shadow-xs relative overflow-hidden">
-          <div className="flex items-start gap-3">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shrink-0 mt-0.5 shadow-xs">
-              <Sparkles className="w-3.5 h-3.5" />
-            </div>
-            <div className="flex-1">
+        <div className="mt-3 p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/80 shadow-xs">
+          <div className="flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+            <div>
               {chefTip && (
-                <p className="text-xs text-[#1d1d1f] leading-relaxed">
-                  <span className="font-semibold">Chef Tip:</span> {chefTip}
+                <p className="text-xs text-stone-800 font-medium leading-relaxed">
+                  <span className="font-bold text-amber-900">Chef Note:</span> {chefTip}
                 </p>
               )}
               {suggestedCuisines && suggestedCuisines.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap mt-2 text-xs text-[#86868b]">
-                  <span className="font-medium text-[#1d1d1f]">Suggested styles:</span>
+                <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                  <span className="text-[10px] font-semibold text-amber-900 uppercase tracking-wider">
+                    Ideal for:
+                  </span>
                   {suggestedCuisines.map((c, idx) => (
-                    <React.Fragment key={c}>
-                      <span className="text-[#1d1d1f] font-medium">{c}</span>
-                      {idx < suggestedCuisines.length - 1 && <span className="text-[#d2d2d7]">·</span>}
-                    </React.Fragment>
+                    <span
+                      key={idx}
+                      className="text-[11px] font-semibold bg-white px-2 py-0.5 rounded-full border border-amber-300 text-amber-900"
+                    >
+                      {c}
+                    </span>
                   ))}
                 </div>
               )}
@@ -111,153 +124,161 @@ export const IngredientReview: React.FC<IngredientReviewProps> = ({
         </div>
       )}
 
-      {/* iOS Segmented Category Control */}
+      {/* Category Pills Filter */}
       {categories.length > 2 && (
-        <div className="flex items-center gap-1 p-1 bg-black/[0.05] rounded-xl mt-3 overflow-x-auto scrollbar-none">
-          {categories.map((cat) => {
-            const isActive = selectedCategoryFilter === cat;
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategoryFilter(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold'
-                    : 'text-[#86868b] hover:text-[#1d1d1f]'
-                }`}
-              >
-                {cat}
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-1.5 overflow-x-auto py-2.5 mt-2 scrollbar-none">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSelectedCategoryFilter(cat)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                selectedCategoryFilter === cat
+                  ? 'bg-stone-900 text-white shadow-xs'
+                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
       )}
 
-      {/* Grouped Inset List (Apple Reminders / Health style) */}
-      <div className="mt-3.5">
+      {/* Ingredient Items List */}
+      <div className="mt-3 space-y-2">
         {filteredIngredients.length === 0 ? (
-          <div className="text-center py-10 bg-white rounded-2xl border border-black/[0.06] p-6 shadow-xs">
-            <Layers className="w-9 h-9 text-[#86868b] mx-auto mb-2 opacity-40" />
-            <h3 className="text-[#1d1d1f] font-semibold text-sm">Pantry Empty</h3>
-            <p className="text-[#86868b] text-xs mt-1 max-w-xs mx-auto">
-              Snap a photo with your camera or add an ingredient manually.
+          <div className="text-center py-10 bg-white rounded-3xl border border-dashed border-stone-300 p-6">
+            <Layers className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+            <h3 className="text-stone-800 font-bold text-sm">No Ingredients Yet</h3>
+            <p className="text-stone-500 text-xs mt-1 max-w-xs mx-auto">
+              Snap a photo with your mobile camera or type an ingredient manually below.
             </p>
             <button
               onClick={onTakeAnotherPhoto}
               type="button"
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0071e3] text-white font-medium text-xs shadow-xs hover:bg-[#0077ed] active:scale-95 transition-all cursor-pointer"
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 text-white font-semibold text-xs shadow-md shadow-amber-600/20"
             >
               <Camera className="w-3.5 h-3.5" />
-              Open Camera
+              Take Photo
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-black/[0.06] shadow-xs divide-y divide-black/[0.04] overflow-hidden">
-            {filteredIngredients.map((item) => (
+          filteredIngredients.map((item) => {
+            const catStyle =
+              CATEGORY_COLORS[item.category] || CATEGORY_COLORS['Other'];
+
+            return (
               <div
                 key={item.id}
-                className="flex items-center justify-between p-3.5 transition-colors hover:bg-stone-50/60"
+                className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                  item.checked
+                    ? 'bg-white border-stone-200 shadow-xs'
+                    : 'bg-stone-50/70 border-stone-200 opacity-60'
+                }`}
               >
-                {/* Left: Apple Reminders circular checkbox & text */}
+                {/* Left: Checkbox & Name */}
                 <div
                   className="flex items-center gap-3 cursor-pointer select-none flex-1 min-w-0"
                   onClick={() => onToggleCheck(item.id)}
                 >
                   <div
-                    className={`w-5 h-5 rounded-full border transition-all flex items-center justify-center shrink-0 ${
+                    className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${
                       item.checked
-                        ? 'bg-[#0071e3] border-[#0071e3] text-white shadow-xs'
-                        : 'border-[#d2d2d7] bg-white hover:border-[#86868b]'
+                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                        : 'border-stone-300 bg-white'
                     }`}
                   >
-                    {item.checked && <Check className="w-3 h-3 stroke-[3]" />}
+                    {item.checked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                   </div>
 
                   <div className="min-w-0">
-                    <p
-                      className={`font-semibold text-[14px] text-[#1d1d1f] truncate ${
-                        !item.checked ? 'line-through text-[#86868b]' : ''
-                      }`}
-                    >
-                      {item.name}
-                    </p>
-                    {/* Unboxed metadata with middots per design discipline */}
-                    <div className="flex items-center gap-1.5 text-xs text-[#86868b] mt-0.5">
-                      <span>{item.category}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`font-bold text-stone-900 text-sm capitalize truncate ${!item.checked ? 'line-through text-stone-400' : ''}`}>
+                        {item.name}
+                      </span>
                       {item.state && (
-                        <>
-                          <span aria-hidden="true">·</span>
-                          <span>{item.state}</span>
-                        </>
+                        <span className="text-[10px] text-stone-600 font-medium bg-stone-100 px-1.5 py-0.5 rounded-md">
+                          {item.state}
+                        </span>
                       )}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
+                      >
+                        {item.category}
+                      </span>
                       {item.quantity && (
-                        <>
-                          <span aria-hidden="true">·</span>
-                          <span className="tabular-nums">{item.quantity}</span>
-                        </>
+                        <span className="text-[10px] text-stone-600">
+                          • {item.quantity}
+                        </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Right: Remove button */}
+                {/* Right: Actions */}
                 <button
                   type="button"
                   onClick={() => onRemoveIngredient(item.id)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#86868b] hover:text-[#ff3b30] hover:bg-black/[0.04] transition-colors ml-2 cursor-pointer active:scale-90"
+                  className="p-2 text-stone-400 hover:text-red-500 rounded-xl hover:bg-red-50 transition-colors ml-2"
                   title="Remove item"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-            ))}
-          </div>
+            );
+          })
         )}
       </div>
 
-      {/* Manual Ingredient Input (Apple Search/Input style) */}
-      <form onSubmit={handleAddSubmit} className="mt-3.5 flex gap-2">
+      {/* Manual Ingredient Add Bar */}
+      <form onSubmit={handleAddSubmit} className="mt-4 flex gap-2">
         <input
           type="text"
           value={newIngredientName}
           onChange={(e) => setNewIngredientName(e.target.value)}
-          placeholder="Add extra ingredient (e.g., Garlic, Olive Oil)..."
-          className="flex-1 bg-white border border-black/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:border-[#0071e3] focus:ring-1 focus:ring-[#0071e3] shadow-xs"
+          placeholder="Add extra ingredient (e.g., Pasta, Olive Oil)..."
+          className="flex-1 bg-white border border-stone-200 rounded-2xl px-4 py-2.5 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
         />
         <button
           type="submit"
-          className="px-4 py-2.5 bg-[#1d1d1f] hover:bg-black active:scale-95 text-white rounded-xl text-xs font-semibold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
+          className="px-3.5 py-2.5 bg-stone-800 hover:bg-stone-700 active:scale-95 text-white rounded-2xl text-xs font-semibold flex items-center gap-1 shadow-xs transition-all"
         >
           <Plus className="w-3.5 h-3.5" />
           Add
         </button>
       </form>
 
-      {/* Add more photo button */}
-      <button
-        onClick={onTakeAnotherPhoto}
-        type="button"
-        className="mt-3 w-full py-2.5 px-4 rounded-xl border border-black/[0.08] bg-white hover:bg-stone-50 text-[#1d1d1f] font-medium text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer shadow-xs"
-      >
-        <Camera className="w-3.5 h-3.5 text-[#0071e3]" />
-        <span>Snap Another Photo</span>
-      </button>
+      {/* Multi-photo repetition prompt (Item 4: repeat 1-4 as needed) */}
+      <div className="mt-4 pt-3 border-t border-stone-200">
+        <button
+          onClick={onTakeAnotherPhoto}
+          type="button"
+          className="w-full py-3 px-4 rounded-2xl border border-dashed border-amber-400 bg-amber-50/60 hover:bg-amber-100/70 text-amber-900 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+        >
+          <Camera className="w-4 h-4 text-amber-700" />
+          📸 Take Another Photo to Add More Ingredients
+        </button>
+        <p className="text-[11px] text-stone-600 text-center mt-1">
+          Add items from your fridge, spice rack, or pantry shelf.
+        </p>
+      </div>
 
-      {/* Primary Action Buttons: Apple Blue & Onyx Buttons */}
+      {/* Primary Action Buttons: Find with Claude AI */}
       <div className="mt-5 space-y-2.5">
         <button
           onClick={onFindGeminiRecipes}
           disabled={selectedCount === 0 || isSearchingRecipes}
           type="button"
-          className="w-full py-3.5 px-4 rounded-2xl bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.98] text-white font-semibold text-sm shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-40"
+          className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 active:scale-[0.98] text-white font-extrabold text-sm shadow-md shadow-orange-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
         >
           {isSearchingRecipes ? (
             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
             <Sparkles className="w-4 h-4" />
           )}
-          <span>Find Recipes with {aiProvider === 'mistral' ? 'Mistral AI' : 'Gemini AI'} ({selectedCount})</span>
+          Generate Recipes with Claude AI ({selectedCount})
           <ChevronRight className="w-4 h-4" />
         </button>
 
@@ -265,10 +286,10 @@ export const IngredientReview: React.FC<IngredientReviewProps> = ({
           onClick={onGenerateCustomRecipe}
           disabled={selectedCount === 0 || isSearchingRecipes}
           type="button"
-          className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-stone-50 active:scale-[0.98] text-[#1d1d1f] font-semibold text-xs border border-black/[0.08] shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-40"
+          className="w-full py-3 px-4 rounded-2xl bg-stone-900 hover:bg-stone-800 active:scale-[0.98] text-amber-400 font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50 border border-stone-800"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-          <span>Generate Custom {aiProvider === 'mistral' ? 'Mistral' : 'Gemini'} Dish</span>
+          <Sparkles className="w-3.5 h-3.5" />
+          ✨ Create Single Custom Dish (Exact Match)
         </button>
       </div>
     </div>
