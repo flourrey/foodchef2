@@ -21,35 +21,44 @@ async function parseRequestBody(req: any): Promise<any> {
   if (req.body && typeof req.body === 'object') {
     return req.body;
   }
-  if (typeof req.body === 'string') {
+  if (typeof req.body === 'string' && req.body.trim().length > 0) {
     try {
       return JSON.parse(req.body);
     } catch {
       return {};
     }
   }
+  if (req.readableEnded || req.complete) {
+    return req.body || {};
+  }
   return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(req.body || {}), 1500);
     const chunks: Buffer[] = [];
     if (typeof req.on !== 'function') {
-      resolve({});
+      clearTimeout(timer);
+      resolve(req.body || {});
       return;
     }
     req.on('data', (chunk: any) => {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     });
     req.on('end', () => {
+      clearTimeout(timer);
       if (chunks.length === 0) {
-        resolve({});
+        resolve(req.body || {});
         return;
       }
       try {
         const raw = Buffer.concat(chunks).toString('utf8');
         resolve(JSON.parse(raw));
       } catch {
-        resolve({});
+        resolve(req.body || {});
       }
     });
-    req.on('error', () => resolve({}));
+    req.on('error', () => {
+      clearTimeout(timer);
+      resolve(req.body || {});
+    });
   });
 }
 
@@ -73,7 +82,7 @@ function extractJsonFromText(rawText: string): any {
 // Anthropic Claude Client Initialization
 function getAnthropicClient(): { client: Anthropic; keySource: string } | null {
   const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
-  if (!apiKey) return null;
+  if (!apiKey || apiKey.toLowerCase().startsWith('your_') || apiKey.length < 15) return null;
   return {
     client: new Anthropic({ apiKey }),
     keySource: 'ANTHROPIC_API_KEY',
@@ -82,9 +91,23 @@ function getAnthropicClient(): { client: Anthropic; keySource: string } | null {
 
 // Google GenAI Client (Fallback bridge when ANTHROPIC_API_KEY is not yet configured)
 function getGeminiClient(): { ai: GoogleGenAI; keySource: string } | null {
-  const apiKey = (process.env.GEMINI_KEY || process.env.GEMINI_API_KEY || '').trim();
+  // Always check GEMINI_API_KEY (AI Studio standard) first, filtering out placeholders
+  const candidates = [process.env.GEMINI_API_KEY, process.env.GEMINI_KEY];
+  let apiKey = '';
+  let keySource = 'GEMINI_API_KEY';
+
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const trimmed = raw.trim();
+    if (trimmed && !trimmed.toLowerCase().startsWith('your_') && trimmed.length > 20) {
+      apiKey = trimmed;
+      keySource = raw === process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : 'GEMINI_KEY';
+      break;
+    }
+  }
+
   if (!apiKey) return null;
-  const keySource = process.env.GEMINI_KEY ? 'GEMINI_KEY' : 'GEMINI_API_KEY';
+
   const ai = new GoogleGenAI({
     apiKey,
     httpOptions: {
@@ -141,15 +164,14 @@ async function generateClaudeContent(params: {
   throw lastError || new Error('All Claude model fallbacks failed');
 }
 
-// Resilient Gemini Fallback Generator
+// Resilient Gemini Fallback Generator using valid, supported models
 async function generateWithFallback(ai: GoogleGenAI, params: any) {
   const models = [
-    'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
-    'gemini-3-flash-preview',
     'gemini-flash-latest',
-    'gemini-3.8-flash',
     'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
   ];
   let lastError: any = null;
 
@@ -343,14 +365,32 @@ function resolveDishPhoto(
   return RECIPE_IMAGE_FALLBACKS[index % RECIPE_IMAGE_FALLBACKS.length];
 }
 
+function cleanErrorMessage(err: any): string {
+  const raw = err?.message || '';
+  if (!raw) return 'AI service temporarily unavailable. Please try again.';
+  try {
+    if (raw.includes('{') && raw.includes('}')) {
+      const jsonStart = raw.indexOf('{');
+      const parsed = JSON.parse(raw.slice(jsonStart));
+      if (parsed?.error?.message) {
+        return parsed.error.message;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return raw;
+}
+
 // 1. Check Key Status
 export function handleKeyStatus(_req: any, res: any) {
   try {
-    const anthropicKey = (process.env.ANTHROPIC_API_KEY || '').trim();
-    const geminiKey = (process.env.GEMINI_KEY || process.env.GEMINI_API_KEY || '').trim();
+    const anthropicInfo = getAnthropicClient();
+    const geminiInfo = getGeminiClient();
 
-    if (anthropicKey) {
-      const masked = anthropicKey.length > 8 ? `${anthropicKey.slice(0, 4)}...${anthropicKey.slice(-4)}` : '****';
+    if (anthropicInfo) {
+      const apiKey = process.env.ANTHROPIC_API_KEY || '';
+      const masked = apiKey.length > 8 ? `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}` : '****';
       return sendJson(res, 200, {
         configured: true,
         status: 'ready',
@@ -362,15 +402,13 @@ export function handleKeyStatus(_req: any, res: any) {
       });
     }
 
-    if (geminiKey) {
-      const masked = geminiKey.length > 8 ? `${geminiKey.slice(0, 4)}...${geminiKey.slice(-4)}` : '****';
+    if (geminiInfo) {
       return sendJson(res, 200, {
         configured: true,
         status: 'ready',
         engine: 'Claude AI (Bridge)',
-        model: 'claude-compatible',
-        keySource: 'GEMINI_KEY',
-        maskedKey: masked,
+        model: 'gemini-flash-latest',
+        keySource: geminiInfo.keySource,
         message: 'Claude AI running via bridge. Add ANTHROPIC_API_KEY for native Claude 3.5 Sonnet.',
       });
     }
@@ -379,7 +417,7 @@ export function handleKeyStatus(_req: any, res: any) {
       configured: false,
       status: 'missing_key',
       engine: 'Claude AI',
-      message: 'No ANTHROPIC_API_KEY or GEMINI_KEY found in environment variables.',
+      message: 'No valid ANTHROPIC_API_KEY or GEMINI_API_KEY found in environment variables.',
     });
   } catch (err: any) {
     return sendJson(res, 500, {
@@ -542,7 +580,7 @@ Return ONLY valid JSON matching this schema:
   } catch (error: any) {
     console.error('Error in handleIdentify:', error);
     return sendJson(res, 500, {
-      error: error?.message || 'Failed to analyze image with Claude AI',
+      error: cleanErrorMessage(error),
     });
   }
 }
@@ -727,7 +765,7 @@ Return ONLY valid JSON matching this schema:
   } catch (error: any) {
     console.error('Error in handleFindRecipes:', error);
     return sendJson(res, 500, {
-      error: error?.message || 'Failed to generate recipes with Claude AI',
+      error: cleanErrorMessage(error),
     });
   }
 }
@@ -881,7 +919,7 @@ Return ONLY valid JSON matching this schema:
   } catch (error: any) {
     console.error('Error in handleCustomRecipe:', error);
     return sendJson(res, 500, {
-      error: error?.message || 'Failed to generate custom recipe with Claude AI',
+      error: cleanErrorMessage(error),
     });
   }
 }
@@ -1153,7 +1191,7 @@ Return ONLY valid JSON matching this schema:
   } catch (error: any) {
     console.error('Error in handleReverseEngineerRecipe:', error);
     return sendJson(res, 500, {
-      error: error?.message || 'Failed to reverse engineer recipe with Claude AI',
+      error: cleanErrorMessage(error),
     });
   }
 }

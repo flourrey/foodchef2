@@ -488,7 +488,14 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
       }
     } catch (err: any) {
       console.error('Reverse engineering error:', err);
-      alert(`Could not reverse engineer recipe: ${err?.message || 'Please try another photo'}`);
+      let errMsg = err?.message || 'Please try another photo';
+      try {
+        if (errMsg.includes('{') && errMsg.includes('}')) {
+          const parsed = JSON.parse(errMsg.slice(errMsg.indexOf('{')));
+          if (parsed?.error?.message) errMsg = parsed.error.message;
+        }
+      } catch {}
+      alert(`Could not reverse engineer recipe: ${errMsg}`);
     } finally {
       setIsAnalyzing(false);
       setStatusMessage('');
@@ -546,7 +553,14 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({
       });
     } catch (err: any) {
       console.error('Analysis error:', err);
-      alert(`Could not identify ingredients: ${err.message || 'Please try another photo'}`);
+      let errMsg = err?.message || 'Please try another photo';
+      try {
+        if (errMsg.includes('{') && errMsg.includes('}')) {
+          const parsed = JSON.parse(errMsg.slice(errMsg.indexOf('{')));
+          if (parsed?.error?.message) errMsg = parsed.error.message;
+        }
+      } catch {}
+      alert(`Could not identify ingredients: ${errMsg}`);
     } finally {
       setIsAnalyzing(false);
       setStatusMessage('');
